@@ -23,7 +23,22 @@ header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px 
 .day.sel{background:var(--acc);border-color:var(--acc);color:var(--accfg)}
 .day.sel small{color:inherit}
 main{padding:12px;display:grid;gap:12px}
-main.side{grid-template-columns:1fr 1fr}
+.sc{user-select:none;-webkit-user-select:none}
+.sc img{-webkit-user-drag:none}
+main.windguru .sc{cursor:grab}
+main .sc.grab{cursor:grabbing}
+.grp{display:flex;gap:6px;align-items:center;color:var(--mut)}
+.btn:disabled{opacity:.35;cursor:default}
+.day.in{background:color-mix(in srgb,var(--acc) 18%,var(--bg))}
+#cal{position:absolute;top:100%;left:12px;z-index:10;width:min(320px,calc(100vw - 24px));margin-top:-4px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;text-transform:capitalize}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cg span{font-size:11px;color:var(--mut)}
+.cd{aspect-ratio:1;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
+.cd.off{opacity:.3;cursor:default}
+.cd.now{border-color:var(--acc)}
+.cd.sel{background:var(--acc);border-color:var(--acc);color:var(--accfg)}
+@media (max-width:700px){header{position:relative}}
 .p{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
 .ph{display:flex;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line)}
 .ph span{color:var(--mut)}
@@ -41,9 +56,18 @@ main.windguru .sc img{max-width:none}
     <h1>Архів прогнозів</h1>
     <button class="btn" data-src="windguru">Windguru</button>
     <button class="btn" data-src="ipma">IPMA</button>
+  </div>
+  <div class="bar" style="margin-top:8px">
+    <button class="btn" id="calBtn">📅 Календар</button>
+    <span class="grp">Днів:
+      <button class="btn" data-n="2">2</button>
+      <button class="btn" data-n="3">3</button>
+      <button class="btn" data-n="4">4</button>
+    </span>
     <button class="btn" id="lay" title="Розкладка"></button>
   </div>
   <div id="days"></div>
+  <div id="cal" hidden></div>
 </header>
 <main id="view"><div id="msg">Завантаження…</div></main>
 
@@ -52,11 +76,20 @@ main.windguru .sc img{max-width:none}
 // owner/repo — власник і назва (репозиторій має бути публічним);
 // ref — гілка (HEAD = гілка за замовчуванням);
 // prefix — підпапка, де лежать каталоги windguru/ та ipma/ (порожньо = корінь).
-const CFG = { owner: 'Skreebl', repo: 'ArqMet', ref: 'HEAD', prefix: '' };
+const CFG = { owner: 'Skreebl', repo: 'MyMeteo', ref: 'HEAD', prefix: '' };
 
 const $ = s => document.querySelector(s);
-const state = { src: 'windguru', day: null, layout: 'auto' };
+const store = {
+  get: k => { try { return localStorage.getItem('wa.' + k); } catch (e) { return null; } },
+  set: (k, v) => { try { localStorage.setItem('wa.' + k, v); } catch (e) {} }
+};
 const LAYOUTS = { auto: 'Розкладка: авто', side: 'Розкладка: поруч', stack: 'Розкладка: одне під одним' };
+const state = {
+  src: 'windguru', day: null,
+  layout: LAYOUTS[store.get('layout')] ? store.get('layout') : 'auto',
+  n: [2, 3, 4].includes(+store.get('n')) ? +store.get('n') : 2
+};
+let calMonth = '';
 let data = { windguru: {}, ipma: {} };
 
 const shift = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
@@ -120,7 +153,7 @@ function panel(d, fallback) {
   const label = rel(d) || fallback;
   const head = `<div class="ph"><b>${label}</b><span>${fmt(d, { weekday: 'short', day: 'numeric', month: 'long' })}${s ? ' · станом на ' + s.time.slice(0, 5) : ''}</span></div>`;
   const body = s
-    ? `<div class="sc"><a href="${s.url}" target="_blank" rel="noopener"><img src="${s.url}" data-raw="${s.url}" data-alt="${s.local}" alt="Прогноз ${d}" onerror="imgFail(this)"></a></div>`
+    ? `<div class="sc"><img src="${s.url}" data-raw="${s.url}" data-alt="${s.local}" alt="Прогноз ${d}" draggable="false" onerror="imgFail(this)"></div>`
     : `<div class="none">Немає знімків за цей день</div>`;
   return `<section class="p">${head}${body}</section>`;
 }
@@ -128,20 +161,24 @@ function panel(d, fallback) {
 function render() {
   const src = state.src, days = dayList(src);
   document.querySelectorAll('[data-src]').forEach(b => b.classList.toggle('on', b.dataset.src === src));
+  document.querySelectorAll('[data-n]').forEach(b => b.classList.toggle('on', +b.dataset.n === state.n));
   $('#lay').textContent = LAYOUTS[state.layout];
   if (!days.length) { $('#view').className = ''; $('#view').innerHTML = '<div id="msg">Для цього джерела ще немає знімків.</div>'; $('#days').innerHTML = ''; return; }
   if (!state.day || !has(src, state.day)) state.day = days.filter(d => has(src, d)).pop();
   const t = today();
   $('#days').innerHTML = days.map(d =>
-    `<button class="day${has(src, d) ? '' : ' off'}${d === state.day ? ' sel' : ''}${d === t ? ' now' : ''}" data-d="${d}" ${has(src, d) ? '' : 'disabled'}>` +
+    `<button class="day${has(src, d) ? '' : ' off'}${d === state.day ? ' sel' : ''}${d < state.day && d >= shift(state.day, 1 - state.n) ? ' in' : ''}${d === t ? ' now' : ''}" data-d="${d}" ${has(src, d) ? '' : 'disabled'}>` +
     `<small>${fmt(d, { weekday: 'short' })}</small><b>${+d.slice(8)}</b><small>${fmt(d, { month: 'short' })}</small></button>`).join('');
   const sel = $('.day.sel');
   if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
-  const side = state.layout === 'side' || (state.layout === 'auto' && src === 'ipma' && innerWidth >= 760);
+  const n = state.n;
+  const side = state.layout === 'side' || (state.layout === 'auto' && src === 'ipma' && innerWidth >= 400 * n);
   const v = $('#view');
   v.className = src + (side ? ' side' : '');
-  v.innerHTML = panel(shift(state.day, -1), 'Попередній день') + panel(state.day, 'Вибраний день');
+  v.style.gridTemplateColumns = side ? `repeat(${n}, minmax(0, 1fr))` : '';
+  v.innerHTML = Array.from({ length: n }, (_, i) => panel(shift(state.day, -i), i === 0 ? 'Вибраний день' : 'Раніше')).join('');
   syncScroll();
+  if (!$('#cal').hidden) renderCal();
   history.replaceState(null, '', `#${src}/${state.day}`);
 }
 
@@ -170,14 +207,80 @@ function step(n) {
   if (i >= 0 && i < ds.length) { state.day = ds[i]; render(); }
 }
 
+const addMonth = (ym, n) => { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7); };
+
+function renderCal() {
+  const days = dayList(state.src);
+  if (!days.length) return;
+  const minM = days[0].slice(0, 7), maxM = days[days.length - 1].slice(0, 7), t = today();
+  const [y, m] = calMonth.split('-').map(Number);
+  const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
+  const dim = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  let cells = '<i></i>'.repeat(lead);
+  for (let i = 1; i <= dim; i++) {
+    const ds = `${calMonth}-${String(i).padStart(2, '0')}`, ok = has(state.src, ds);
+    cells += `<button class="cd${ok ? '' : ' off'}${ds === state.day ? ' sel' : ''}${ds === t ? ' now' : ''}" data-cd="${ds}" ${ok ? '' : 'disabled'}>${i}</button>`;
+  }
+  $('#cal').innerHTML =
+    `<div class="ch"><button class="btn" data-cm="-1" ${calMonth <= minM ? 'disabled' : ''}>‹</button><b>${fmt(calMonth + '-01', { month: 'long', year: 'numeric' })}</b><button class="btn" data-cm="1" ${calMonth >= maxM ? 'disabled' : ''}>›</button></div>` +
+    `<div class="cg">${['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(x => `<span>${x}</span>`).join('')}${cells}</div>`;
+}
+
+function toggleCal(open) {
+  const c = $('#cal');
+  if (!state.day) return;
+  const show = open ?? c.hidden;
+  c.hidden = !show;
+  if (show) { calMonth = state.day.slice(0, 7); renderCal(); }
+}
+
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-src]'), d = e.target.closest('.day[data-d]');
-  if (b) { state.src = b.dataset.src; state.day = null; render(); }
+  const t = e.target;
+  const b = t.closest('[data-src]'), d = t.closest('.day[data-d]'), n = t.closest('[data-n]');
+  const cm = t.closest('[data-cm]'), cd = t.closest('[data-cd]');
+  if (cm) { if (!cm.disabled) { calMonth = addMonth(calMonth, +cm.dataset.cm); renderCal(); } return; }
+  if (cd) { if (!cd.disabled) { state.day = cd.dataset.cd; toggleCal(false); render(); } return; }
+  if (t.closest('#calBtn')) { toggleCal(); return; }
+  if (!t.closest('#cal')) toggleCal(false);
+  if (b) { state.src = b.dataset.src; render(); }
   if (d && !d.disabled) { state.day = d.dataset.d; render(); }
-  if (e.target.closest('#lay')) { const k = Object.keys(LAYOUTS); state.layout = k[(k.indexOf(state.layout) + 1) % k.length]; render(); }
+  if (n) { state.n = +n.dataset.n; store.set('n', state.n); render(); }
+  if (t.closest('#lay')) {
+    const k = Object.keys(LAYOUTS);
+    state.layout = k[(k.indexOf(state.layout) + 1) % k.length];
+    store.set('layout', state.layout);
+    render();
+  }
 });
-document.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); });
-addEventListener('resize', () => { if (state.layout === 'auto') render(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') toggleCal(false);
+  if (e.key === 'ArrowLeft') step(-1);
+  if (e.key === 'ArrowRight') step(1);
+});
+
+// Перетягування зображення мишею (дотик і повзунок працюють як раніше)
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'mouse' || e.button !== 0) return;
+  const sc = e.target.closest('.sc');
+  if (!sc || sc.scrollWidth <= sc.clientWidth) return;
+  if (e.offsetY > sc.clientHeight) return; // клік по повзунку не перехоплюємо
+  drag = { sc, x: e.clientX, left: sc.scrollLeft };
+  sc.classList.add('grab');
+  e.preventDefault();
+});
+document.addEventListener('pointermove', e => { if (drag) drag.sc.scrollLeft = drag.left - (e.clientX - drag.x); });
+const endDrag = () => { if (drag) { drag.sc.classList.remove('grab'); drag = null; } };
+document.addEventListener('pointerup', endDrag);
+document.addEventListener('pointercancel', endDrag);
+document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('.sc')) e.preventDefault(); });
+let lastW = innerWidth;
+addEventListener('resize', () => {
+  if (innerWidth === lastW) return;
+  lastW = innerWidth;
+  if (state.layout === 'auto') render();
+});
 
 (async () => {
   try {
