@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Архів прогнозів погоди</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--fg:#1c2430;--mut:#6b7686;--line:#dde2ea;--acc:#1a73e8;--accfg:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1b212a;--fg:#e8ecf1;--mut:#8f9aab;--line:#2c3541;--acc:#5b9dff;--accfg:#0b1220}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 12px 8px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar h1{font-size:16px;margin:0 auto 0 0}
+.btn{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+.btn.on{background:var(--acc);border-color:var(--acc);color:var(--accfg)}
+#days{display:flex;gap:6px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:thin}
+.day{flex:none;width:52px;padding:6px 0;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;align-items:center;font:inherit;cursor:pointer}
+.day small{font-size:11px;color:var(--mut)}
+.day b{font-size:17px}
+.day.off{opacity:.35;cursor:default}
+.day.now{border-color:var(--acc)}
+.day.sel{background:var(--acc);border-color:var(--acc);color:var(--accfg)}
+.day.sel small{color:inherit}
+main{padding:12px;display:grid;gap:12px}
+main.side{grid-template-columns:1fr 1fr}
+.p{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.ph{display:flex;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line)}
+.ph span{color:var(--mut)}
+.sc{overflow-x:auto}
+.sc img{display:block}
+main.ipma .sc img{width:100%;height:auto}
+main.windguru .sc img{max-width:none}
+.none,#msg{padding:40px 16px;text-align:center;color:var(--mut)}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>Архів прогнозів</h1>
+    <button class="btn" data-src="windguru">Windguru</button>
+    <button class="btn" data-src="ipma">IPMA</button>
+    <button class="btn" id="lay" title="Розкладка"></button>
+  </div>
+  <div id="days"></div>
+</header>
+<main id="view"><div id="msg">Завантаження…</div></main>
+
+<script>
+// Якщо сторінка не на username.github.io/repo — впишіть owner і repo вручну.
+const CFG = { owner: 'Skreebl', repo: 'MyMeteo', ref: 'HEAD' };
+
+const $ = s => document.querySelector(s);
+const state = { src: 'windguru', day: null, layout: 'auto' };
+const LAYOUTS = { auto: 'Розкладка: авто', side: 'Розкладка: поруч', stack: 'Розкладка: одне під одним' };
+let data = { windguru: {}, ipma: {} };
+
+const shift = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+const fmt = (d, o) => new Intl.DateTimeFormat('uk-UA', { timeZone: 'UTC', ...o }).format(new Date(d + 'T00:00:00Z'));
+const today = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; };
+const rel = d => { const t = today(); return d === t ? 'Сьогодні' : d === shift(t, -1) ? 'Вчора' : d === shift(t, -2) ? 'Позавчора' : ''; };
+
+function repoInfo() {
+  if (CFG.owner && CFG.repo) return CFG;
+  const m = location.hostname.match(/^(.+)\.github\.io$/);
+  if (!m) return null;
+  const seg = location.pathname.split('/')[1] || '';
+  return { ...CFG, owner: m[1], repo: seg && !seg.includes('.') ? seg : location.hostname };
+}
+
+async function loadTree() {
+  const info = repoInfo();
+  if (!info) throw new Error('Не вдалося визначити репозиторій. Впишіть owner і repo у CFG.');
+  const key = `wa:${info.owner}/${info.repo}`;
+  try {
+    const c = JSON.parse(sessionStorage.getItem(key) || 'null');
+    if (c && Date.now() - c.t < 3e5) return c.paths;
+  } catch (e) {}
+  const r = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${info.ref}?recursive=1`);
+  if (!r.ok) throw new Error(`GitHub API: ${r.status}. Ліміт запитів або репозиторій приватний.`);
+  const paths = (await r.json()).tree.filter(t => t.type === 'blob').map(t => t.path);
+  try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), paths })); } catch (e) {}
+  return paths;
+}
+
+function index(paths) {
+  const re = /^(windguru|ipma)\/(\d{4}-\d{2}-\d{2})[ T_](\d{2})[:_.-](\d{2})[:_.-](\d{2})_(?:windguru|ipma)\.png$/;
+  for (const p of paths) {
+    const m = p.match(re);
+    if (!m) continue;
+    const [, src, date, hh, mi, ss] = m;
+    const time = `${hh}:${mi}:${ss}`;
+    const url = src + '/' + encodeURIComponent(p.slice(src.length + 1));
+    (data[src][date] = data[src][date] || []).push({ time, url });
+  }
+  for (const s in data) for (const d in data[s]) data[s][d].sort((a, b) => a.time.localeCompare(b.time));
+}
+
+function dayList(src) {
+  const ks = Object.keys(data[src]).sort();
+  if (!ks.length) return [];
+  const out = [];
+  for (let d = ks[0]; d <= ks[ks.length - 1]; d = shift(d, 1)) out.push(d);
+  return out;
+}
+
+const has = (src, d) => !!(data[src][d] && data[src][d].length);
+
+function panel(d, fallback) {
+  const s = (data[state.src][d] || []).slice(-1)[0];
+  const label = rel(d) || fallback;
+  const head = `<div class="ph"><b>${label}</b><span>${fmt(d, { weekday: 'short', day: 'numeric', month: 'long' })}${s ? ' · станом на ' + s.time.slice(0, 5) : ''}</span></div>`;
+  const body = s
+    ? `<div class="sc"><a href="${s.url}" target="_blank" rel="noopener"><img src="${s.url}" alt="Прогноз ${d}"></a></div>`
+    : `<div class="none">Немає знімків за цей день</div>`;
+  return `<section class="p">${head}${body}</section>`;
+}
+
+function render() {
+  const src = state.src, days = dayList(src);
+  document.querySelectorAll('[data-src]').forEach(b => b.classList.toggle('on', b.dataset.src === src));
+  $('#lay').textContent = LAYOUTS[state.layout];
+  if (!days.length) { $('#view').className = ''; $('#view').innerHTML = '<div id="msg">Для цього джерела ще немає знімків.</div>'; $('#days').innerHTML = ''; return; }
+  if (!state.day || !has(src, state.day)) state.day = days.filter(d => has(src, d)).pop();
+  const t = today();
+  $('#days').innerHTML = days.map(d =>
+    `<button class="day${has(src, d) ? '' : ' off'}${d === state.day ? ' sel' : ''}${d === t ? ' now' : ''}" data-d="${d}" ${has(src, d) ? '' : 'disabled'}>` +
+    `<small>${fmt(d, { weekday: 'short' })}</small><b>${+d.slice(8)}</b><small>${fmt(d, { month: 'short' })}</small></button>`).join('');
+  const sel = $('.day.sel');
+  if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
+  const side = state.layout === 'side' || (state.layout === 'auto' && src === 'ipma' && innerWidth >= 760);
+  const v = $('#view');
+  v.className = src + (side ? ' side' : '');
+  v.innerHTML = panel(shift(state.day, -1), 'Попередній день') + panel(state.day, 'Вибраний день');
+  syncScroll();
+  history.replaceState(null, '', `#${src}/${state.day}`);
+}
+
+function syncScroll() {
+  const sc = [...document.querySelectorAll('.sc')];
+  let lock = false;
+  sc.forEach(a => a.addEventListener('scroll', () => {
+    if (lock) return;
+    lock = true;
+    sc.forEach(b => { if (b !== a) b.scrollLeft = a.scrollLeft; });
+    requestAnimationFrame(() => lock = false);
+  }));
+}
+
+function step(n) {
+  const ds = dayList(state.src).filter(d => has(state.src, d));
+  const i = ds.indexOf(state.day) + n;
+  if (i >= 0 && i < ds.length) { state.day = ds[i]; render(); }
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-src]'), d = e.target.closest('.day[data-d]');
+  if (b) { state.src = b.dataset.src; state.day = null; render(); }
+  if (d && !d.disabled) { state.day = d.dataset.d; render(); }
+  if (e.target.closest('#lay')) { const k = Object.keys(LAYOUTS); state.layout = k[(k.indexOf(state.layout) + 1) % k.length]; render(); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); });
+addEventListener('resize', () => { if (state.layout === 'auto') render(); });
+
+(async () => {
+  try {
+    index(await loadTree());
+    const m = location.hash.match(/^#(windguru|ipma)\/(\d{4}-\d{2}-\d{2})$/);
+    if (m) { state.src = m[1]; state.day = m[2]; }
+    render();
+  } catch (err) {
+    $('#view').innerHTML = `<div id="msg">${err.message}</div>`;
+  }
+})();
+</script>
+</body>
+</html>
