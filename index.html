@@ -30,7 +30,7 @@ main.side{grid-template-columns:1fr 1fr}
 .sc{overflow-x:auto}
 .sc img{display:block}
 main.ipma .sc img{width:100%;height:auto}
-main.windguru .sc img{max-width:none}
+main. .sc img{max-width:none}
 .none,#msg{padding:40px 16px;text-align:center;color:var(--mut)}
 </style>
 </head>
@@ -38,7 +38,7 @@ main.windguru .sc img{max-width:none}
 <header>
   <div class="bar">
     <h1>Архів прогнозів</h1>
-    <button class="btn" data-src="windguru">Windguru</button>
+    <button class="btn" data-src="">Windguru</button>
     <button class="btn" data-src="ipma">IPMA</button>
     <button class="btn" id="lay" title="Розкладка"></button>
   </div>
@@ -48,7 +48,7 @@ main.windguru .sc img{max-width:none}
 
 <script>
 // Якщо сторінка не на username.github.io/repo — впишіть owner і repo вручну.
-const CFG = { owner: '', repo: '', ref: 'HEAD' };
+const CFG = { Skreebl: '', MyMeteo: '', ref: 'HEAD' };
 
 const $ = s => document.querySelector(s);
 const state = { src: 'windguru', day: null, layout: 'auto' };
@@ -84,7 +84,7 @@ async function loadTree() {
 }
 
 function index(paths) {
-  const re = /^(windguru|ipma)\/(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})_(?:windguru|ipma)\.png$/;
+  const re = /^(|ipma)\/(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})_(?:|ipma)\.png$/;
   for (const p of paths) {
     const m = p.match(re);
     if (!m) continue;
@@ -164,7 +164,7 @@ addEventListener('resize', () => { if (state.layout === 'auto') render(); });
 (async () => {
   try {
     index(await loadTree());
-    const m = location.hash.match(/^#(windguru|ipma)\/(\d{4}-\d{2}-\d{2})$/);
+    const m = location.hash.match(/^#(|ipma)\/(\d{4}-\d{2}-\d{2})$/);
     if (m) { state.src = m[1]; state.day = m[2]; }
     render();
   } catch (err) {
