@@ -83,10 +83,10 @@ const store = {
   get: k => { try { return localStorage.getItem('wa.' + k); } catch (e) { return null; } },
   set: (k, v) => { try { localStorage.setItem('wa.' + k, v); } catch (e) {} }
 };
-const LAYOUTS = { auto: 'Розкладка: авто', side: 'Розкладка: поруч', stack: 'Розкладка: одне під одним' };
+const LAYOUTS = { stack: 'Розкладка: один під одним', side: 'Розкладка: по два в ряд' };
 const state = {
   src: 'windguru', day: null,
-  layout: LAYOUTS[store.get('layout')] ? store.get('layout') : 'auto',
+  layout: LAYOUTS[store.get('layout')] ? store.get('layout') : 'stack',
   n: [2, 3, 4].includes(+store.get('n')) ? +store.get('n') : 2
 };
 let calMonth = '';
@@ -172,10 +172,11 @@ function render() {
   const sel = $('.day.sel');
   if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
   const n = state.n;
-  const side = state.layout === 'side' || (state.layout === 'auto' && src === 'ipma' && innerWidth >= 400 * n);
+  const side = src === 'ipma' || state.layout === 'side';
   const v = $('#view');
   v.className = src + (side ? ' side' : '');
-  v.style.gridTemplateColumns = side ? `repeat(${n}, minmax(0, 1fr))` : '';
+  v.style.gridTemplateColumns = side ? 'repeat(2, minmax(0, 1fr))' : '';
+  $('#lay').hidden = src === 'ipma';
   v.innerHTML = Array.from({ length: n }, (_, i) => panel(shift(state.day, -i), i === 0 ? 'Вибраний день' : 'Раніше')).join('');
   syncScroll();
   if (!$('#cal').hidden) renderCal();
@@ -275,12 +276,7 @@ const endDrag = () => { if (drag) { drag.sc.classList.remove('grab'); drag = nul
 document.addEventListener('pointerup', endDrag);
 document.addEventListener('pointercancel', endDrag);
 document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('.sc')) e.preventDefault(); });
-let lastW = innerWidth;
-addEventListener('resize', () => {
-  if (innerWidth === lastW) return;
-  lastW = innerWidth;
-  if (state.layout === 'auto') render();
-});
+
 
 (async () => {
   try {
