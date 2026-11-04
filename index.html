@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Архів прогнозів погоди</title>
+<title>Архів погоди · Zambujeira do Mar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a73e8'/%3E%3Ccircle cx='42' cy='24' r='11' fill='%23ffc83d'/%3E%3Ccircle cx='24' cy='42' r='9' fill='%23fff'/%3E%3Ccircle cx='36' cy='38' r='12' fill='%23fff'/%3E%3Ccircle cx='47' cy='44' r='8' fill='%23fff'/%3E%3Crect x='24' y='42' width='23' height='10' fill='%23fff'/%3E%3C/svg%3E">
 <style>
 :root{--bg:#f4f6f9;--card:#fff;--fg:#1c2430;--mut:#6b7686;--line:#dde2ea;--acc:#1a73e8;--accfg:#fff}
 @media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1b212a;--fg:#e8ecf1;--mut:#8f9aab;--line:#2c3541;--acc:#5b9dff;--accfg:#0b1220}}
@@ -14,68 +15,81 @@ header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px 
 .bar h1{font-size:16px;margin:0 auto 0 0}
 .btn{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
 .btn.on{background:var(--acc);border-color:var(--acc);color:var(--accfg)}
+.btn:disabled{opacity:.35;cursor:default}
+.lg .btn{padding:4px 10px}
+.grp{display:flex;gap:6px;align-items:center;color:var(--mut)}
 #days{display:flex;gap:6px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:thin}
 .day{flex:none;width:52px;padding:6px 0;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;align-items:center;font:inherit;cursor:pointer}
 .day small{font-size:11px;color:var(--mut)}
 .day b{font-size:17px}
 .day.off{opacity:.35;cursor:default}
 .day.now{border-color:var(--acc)}
+.day.in{background:color-mix(in srgb,var(--acc) 18%,var(--bg))}
 .day.sel{background:var(--acc);border-color:var(--acc);color:var(--accfg)}
 .day.sel small{color:inherit}
 main{padding:12px;display:grid;gap:12px}
-.sc{user-select:none;-webkit-user-select:none}
-.sc img{-webkit-user-drag:none}
+.p{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.ph{display:flex;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line)}
+.ph span{color:var(--mut)}
+.sc{overflow-x:auto;user-select:none;-webkit-user-select:none}
+.sc img{display:block;-webkit-user-drag:none}
+main.ipma .sc img{width:100%;height:auto}
+main.windguru .sc img{max-width:none}
 main.windguru .sc{cursor:grab}
 main .sc.grab{cursor:grabbing}
-.grp{display:flex;gap:6px;align-items:center;color:var(--mut)}
-.btn:disabled{opacity:.35;cursor:default}
-.day.in{background:color-mix(in srgb,var(--acc) 18%,var(--bg))}
+.none,#msg{padding:40px 16px;text-align:center;color:var(--mut)}
+.none a{color:var(--acc)}
 #cal{position:absolute;top:100%;left:12px;z-index:10;width:min(320px,calc(100vw - 24px));margin-top:-4px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;text-transform:capitalize}
 .cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
-.cg span{font-size:11px;color:var(--mut)}
+.cg span{font-size:11px;color:var(--mut);text-transform:capitalize}
 .cd{aspect-ratio:1;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
 .cd.off{opacity:.3;cursor:default}
 .cd.now{border-color:var(--acc)}
 .cd.sel{background:var(--acc);border-color:var(--acc);color:var(--accfg)}
+dialog{width:min(560px,calc(100vw - 24px));max-height:80vh;padding:0;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--fg);overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.dh{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--line)}
+#aiBody{padding:14px;line-height:1.55;white-space:pre-line}
+.act{margin-top:12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--acc) 15%,var(--card))}
+.act small{display:block;color:var(--mut)}
 @media (max-width:700px){header{position:relative}}
-.p{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
-.ph{display:flex;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line)}
-.ph span{color:var(--mut)}
-.sc{overflow-x:auto}
-.sc img{display:block}
-main.ipma .sc img{width:100%;height:auto}
-main.windguru .sc img{max-width:none}
-.none,#msg{padding:40px 16px;text-align:center;color:var(--mut)}
-.none a{color:var(--acc)}
 </style>
 </head>
 <body>
 <header>
   <div class="bar">
-    <h1>Архів прогнозів</h1>
-    <button class="btn" data-src="windguru">Windguru</button>
-    <button class="btn" data-src="ipma">IPMA</button>
+    <h1 data-i18n="title"></h1>
+    <span class="grp lg">
+      <button class="btn" data-lang="uk">UA</button>
+      <button class="btn" data-lang="pt">PT</button>
+    </span>
   </div>
   <div class="bar" style="margin-top:8px">
-    <button class="btn" id="calBtn">📅 Календар</button>
-    <span class="grp">Днів:
+    <button class="btn" data-src="windguru">Windguru</button>
+    <button class="btn" data-src="ipma">IPMA</button>
+    <button class="btn" id="calBtn" data-i18n="cal"></button>
+    <span class="grp"><span data-i18n="days"></span>
       <button class="btn" data-n="2">2</button>
-      <button class="btn" data-n="3">3</button>
       <button class="btn" data-n="4">4</button>
     </span>
-    <button class="btn" id="lay" title="Розкладка"></button>
+    <button class="btn" id="lay"></button>
+    <button class="btn" id="aiBtn" data-i18n="ai" hidden></button>
   </div>
   <div id="days"></div>
   <div id="cal" hidden></div>
 </header>
-<main id="view"><div id="msg">Завантаження…</div></main>
+<main id="view"><div id="msg" data-i18n="loading"></div></main>
+<dialog id="ai">
+  <div class="dh"><b data-i18n="aiTitle"></b><button class="btn" id="aiClose" aria-label="×">✕</button></div>
+  <div id="aiBody"></div>
+</dialog>
 
 <script>
-// Репозиторій, ЗВІДКИ беруться знімки. Може бути іншим, ніж той, де лежить сам сайт.
+// Репозиторій, ЗВІДКИ беруться знімки та data/analysis.json. Може бути іншим, ніж той, де лежить сам сайт.
 // owner/repo — власник і назва (репозиторій має бути публічним);
 // ref — гілка (HEAD = гілка за замовчуванням);
-// prefix — підпапка, де лежать каталоги windguru/ та ipma/ (порожньо = корінь).
+// prefix — підпапка, де лежать каталоги windguru/, ipma/ та data/ (порожньо = корінь).
 const CFG = { owner: 'Skreebl', repo: 'ArqMet', ref: 'HEAD', prefix: '' };
 
 const $ = s => document.querySelector(s);
@@ -83,19 +97,57 @@ const store = {
   get: k => { try { return localStorage.getItem('wa.' + k); } catch (e) { return null; } },
   set: (k, v) => { try { localStorage.setItem('wa.' + k, v); } catch (e) {} }
 };
-const LAYOUTS = { stack: 'Розкладка: один під одним', side: 'Розкладка: по два в ряд' };
+
+const I18N = {
+  uk: {
+    locale: 'uk-UA', htmlLang: 'uk',
+    title: 'Архів погоди · Zambujeira do Mar', loading: 'Завантаження…',
+    cal: '📅 Календар', days: 'Днів:', lay_stack: 'Розкладка: один під одним', lay_side: 'Розкладка: по два в ряд',
+    ai: '🤖 Огляд ШІ', aiTitle: 'Огляд погоди від ШІ', action: 'Рекомендована дія',
+    today: 'Сьогодні', yest: 'Вчора', before: 'Позавчора', sel: 'Вибраний день', earlier: 'Раніше',
+    asof: 'станом на {0}', nodata: 'Немає знімків за цей день', nosrc: 'Для цього джерела ще немає знімків.',
+    imgfail: 'Не вдалося завантажити зображення ({0}).', net: 'мережа недоступна', alt: 'Прогноз {0}',
+    errRepo: 'Не вдалося визначити репозиторій. Впишіть owner і repo у CFG.',
+    errApi: 'GitHub API: {0}. Ліміт запитів або репозиторій приватний.'
+  },
+  pt: {
+    locale: 'pt-PT', htmlLang: 'pt-PT',
+    title: 'Arquivo meteorológico · Zambujeira do Mar', loading: 'A carregar…',
+    cal: '📅 Calendário', days: 'Dias:', lay_stack: 'Disposição: um abaixo do outro', lay_side: 'Disposição: dois por linha',
+    ai: '🤖 Análise IA', aiTitle: 'Análise meteorológica por IA', action: 'Ação recomendada',
+    today: 'Hoje', yest: 'Ontem', before: 'Anteontem', sel: 'Dia selecionado', earlier: 'Anterior',
+    asof: 'às {0}', nodata: 'Sem capturas de ecrã neste dia', nosrc: 'Ainda não há capturas de ecrã para esta fonte.',
+    imgfail: 'Não foi possível carregar a imagem ({0}).', net: 'rede indisponível', alt: 'Previsão {0}',
+    errRepo: 'Não foi possível determinar o repositório. Preencha owner e repo em CFG.',
+    errApi: 'API do GitHub: {0}. Limite de pedidos excedido ou repositório privado.'
+  }
+};
+const savedLang = store.get('lang');
+let lang = I18N[savedLang] ? savedLang : (navigator.language || '').toLowerCase().startsWith('pt') ? 'pt' : 'uk';
+const T = (k, ...a) => (I18N[lang][k] ?? k).replace(/\{(\d)\}/g, (_, i) => a[i]);
+
+function applyLang() {
+  document.documentElement.lang = I18N[lang].htmlLang;
+  document.title = T('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = T(el.dataset.i18n); });
+  document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+}
+
+const LAYOUTS = ['stack', 'side'];
 const state = {
   src: 'windguru', day: null,
-  layout: LAYOUTS[store.get('layout')] ? store.get('layout') : 'stack',
-  n: [2, 3, 4].includes(+store.get('n')) ? +store.get('n') : 2
+  layout: LAYOUTS.includes(store.get('layout')) ? store.get('layout') : 'stack',
+  n: [2, 4].includes(+store.get('n')) ? +store.get('n') : 2
 };
 let calMonth = '';
+let ai = null;
 let data = { windguru: {}, ipma: {} };
 
 const shift = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
-const fmt = (d, o) => new Intl.DateTimeFormat('uk-UA', { timeZone: 'UTC', ...o }).format(new Date(d + 'T00:00:00Z'));
+const fmt = (d, o) => new Intl.DateTimeFormat(I18N[lang].locale, { timeZone: 'UTC', ...o }).format(new Date(d + 'T00:00:00Z'));
 const today = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; };
-const rel = d => { const t = today(); return d === t ? 'Сьогодні' : d === shift(t, -1) ? 'Вчора' : d === shift(t, -2) ? 'Позавчора' : ''; };
+const rel = d => { const t = today(); return d === t ? T('today') : d === shift(t, -1) ? T('yest') : d === shift(t, -2) ? T('before') : ''; };
+const prefixDir = () => CFG.prefix ? CFG.prefix.replace(/^\/+|\/+$/g, '') + '/' : '';
 
 function repoInfo() {
   if (CFG.owner && CFG.repo) return CFG;
@@ -107,14 +159,14 @@ function repoInfo() {
 
 async function loadTree() {
   const info = repoInfo();
-  if (!info) throw new Error('Не вдалося визначити репозиторій. Впишіть owner і repo у CFG.');
+  if (!info) throw new Error(T('errRepo'));
   const key = `wa:${info.owner}/${info.repo}`;
   try {
     const c = JSON.parse(sessionStorage.getItem(key) || 'null');
     if (c && Date.now() - c.t < 3e5) return c.paths;
   } catch (e) {}
   const r = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${info.ref}?recursive=1`);
-  if (!r.ok) throw new Error(`GitHub API: ${r.status}. Ліміт запитів або репозиторій приватний.`);
+  if (!r.ok) throw new Error(T('errApi', r.status));
   const paths = (await r.json()).tree.filter(t => t.type === 'blob').map(t => t.path);
   try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), paths })); } catch (e) {}
   return paths;
@@ -122,8 +174,7 @@ async function loadTree() {
 
 function index(paths) {
   const re = /^(windguru|ipma)\/(\d{4}-\d{2}-\d{2})[ T_](\d{2})[:_.-](\d{2})[:_.-](\d{2})_(?:windguru|ipma)\.png$/;
-  const info = repoInfo();
-  const pre = CFG.prefix ? CFG.prefix.replace(/^\/+|\/+$/g, '') + '/' : '';
+  const info = repoInfo(), pre = prefixDir();
   for (const full of paths) {
     if (!full.startsWith(pre)) continue;
     const p = full.slice(pre.length);
@@ -136,6 +187,35 @@ function index(paths) {
     (data[src][date] = data[src][date] || []).push({ time, url, local: `${pre}${src}/${file}` });
   }
   for (const s in data) for (const d in data[s]) data[s][d].sort((a, b) => a.time.localeCompare(b.time));
+}
+
+// Свіжий ШІ-огляд з data/analysis.json (поля analysis та action)
+async function loadAi() {
+  const info = repoInfo();
+  if (!info) return;
+  try {
+    const r = await fetch(`https://raw.githubusercontent.com/${info.owner}/${info.repo}/${info.ref}/${prefixDir()}data/analysis.json`, { cache: 'no-cache' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && (j.analysis || j.action)) { ai = j; $('#aiBtn').hidden = false; }
+  } catch (e) {}
+}
+
+function showAi() {
+  const body = $('#aiBody');
+  body.textContent = '';
+  const [head, ...rest] = String(ai.analysis || '').split('\n');
+  const h = document.createElement('b');
+  h.textContent = head;
+  body.append(h, document.createTextNode(rest.length ? '\n' + rest.join('\n') : ''));
+  if (ai.action) {
+    const a = document.createElement('div'), s = document.createElement('small');
+    a.className = 'act';
+    s.textContent = T('action');
+    a.append(s, document.createTextNode(String(ai.action)));
+    body.append(a);
+  }
+  $('#ai').showModal();
 }
 
 function dayList(src) {
@@ -151,10 +231,10 @@ const has = (src, d) => !!(data[src][d] && data[src][d].length);
 function panel(d, fallback) {
   const s = (data[state.src][d] || []).slice(-1)[0];
   const label = rel(d) || fallback;
-  const head = `<div class="ph"><b>${label}</b><span>${fmt(d, { weekday: 'short', day: 'numeric', month: 'long' })}${s ? ' · станом на ' + s.time.slice(0, 5) : ''}</span></div>`;
+  const head = `<div class="ph"><b>${label}</b><span>${fmt(d, { weekday: 'short', day: 'numeric', month: 'long' })}${s ? ' · ' + T('asof', s.time.slice(0, 5)) : ''}</span></div>`;
   const body = s
-    ? `<div class="sc"><img src="${s.url}" data-raw="${s.url}" data-alt="${s.local}" alt="Прогноз ${d}" draggable="false" onerror="imgFail(this)"></div>`
-    : `<div class="none">Немає знімків за цей день</div>`;
+    ? `<div class="sc"><img src="${s.url}" data-raw="${s.url}" data-alt="${s.local}" alt="${T('alt', d)}" draggable="false" onerror="imgFail(this)"></div>`
+    : `<div class="none">${T('nodata')}</div>`;
   return `<section class="p">${head}${body}</section>`;
 }
 
@@ -162,8 +242,8 @@ function render() {
   const src = state.src, days = dayList(src);
   document.querySelectorAll('[data-src]').forEach(b => b.classList.toggle('on', b.dataset.src === src));
   document.querySelectorAll('[data-n]').forEach(b => b.classList.toggle('on', +b.dataset.n === state.n));
-  $('#lay').textContent = LAYOUTS[state.layout];
-  if (!days.length) { $('#view').className = ''; $('#view').innerHTML = '<div id="msg">Для цього джерела ще немає знімків.</div>'; $('#days').innerHTML = ''; return; }
+  $('#lay').textContent = T('lay_' + state.layout);
+  if (!days.length) { $('#view').className = ''; $('#view').innerHTML = `<div id="msg">${T('nosrc')}</div>`; $('#days').innerHTML = ''; return; }
   if (!state.day || !has(src, state.day)) state.day = days.filter(d => has(src, d)).pop();
   const t = today();
   $('#days').innerHTML = days.map(d =>
@@ -171,13 +251,12 @@ function render() {
     `<small>${fmt(d, { weekday: 'short' })}</small><b>${+d.slice(8)}</b><small>${fmt(d, { month: 'short' })}</small></button>`).join('');
   const sel = $('.day.sel');
   if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
-  const n = state.n;
   const side = src === 'ipma' || state.layout === 'side';
   const v = $('#view');
   v.className = src + (side ? ' side' : '');
   v.style.gridTemplateColumns = side ? 'repeat(2, minmax(0, 1fr))' : '';
   $('#lay').hidden = src === 'ipma';
-  v.innerHTML = Array.from({ length: n }, (_, i) => panel(shift(state.day, -i), i === 0 ? 'Вибраний день' : 'Раніше')).join('');
+  v.innerHTML = Array.from({ length: state.n }, (_, i) => panel(shift(state.day, -i), i === 0 ? T('sel') : T('earlier'))).join('');
   syncScroll();
   if (!$('#cal').hidden) renderCal();
   history.replaceState(null, '', `#${src}/${state.day}`);
@@ -186,9 +265,9 @@ function render() {
 async function imgFail(img) {
   if (!img.dataset.tried) { img.dataset.tried = '1'; img.src = img.dataset.alt; return; }
   const box = img.closest('.sc');
-  let st = 'мережа недоступна';
+  let st = T('net');
   try { st = 'HTTP ' + (await fetch(img.dataset.raw, { method: 'HEAD' })).status; } catch (e) {}
-  box.innerHTML = `<div class="none">Не вдалося завантажити зображення (${st}).<br><a href="${img.dataset.raw}" target="_blank" rel="noopener">raw</a> · <a href="${img.dataset.alt}" target="_blank">pages</a></div>`;
+  box.innerHTML = `<div class="none">${T('imgfail', st)}<br><a href="${img.dataset.raw}" target="_blank" rel="noopener">raw</a> · <a href="${img.dataset.alt}" target="_blank">pages</a></div>`;
 }
 
 function syncScroll() {
@@ -222,9 +301,10 @@ function renderCal() {
     const ds = `${calMonth}-${String(i).padStart(2, '0')}`, ok = has(state.src, ds);
     cells += `<button class="cd${ok ? '' : ' off'}${ds === state.day ? ' sel' : ''}${ds === t ? ' now' : ''}" data-cd="${ds}" ${ok ? '' : 'disabled'}>${i}</button>`;
   }
+  const wd = [1, 2, 3, 4, 5, 6, 7].map(i => `<span>${fmt('2024-01-0' + i, { weekday: 'short' })}</span>`).join('');
   $('#cal').innerHTML =
     `<div class="ch"><button class="btn" data-cm="-1" ${calMonth <= minM ? 'disabled' : ''}>‹</button><b>${fmt(calMonth + '-01', { month: 'long', year: 'numeric' })}</b><button class="btn" data-cm="1" ${calMonth >= maxM ? 'disabled' : ''}>›</button></div>` +
-    `<div class="cg">${['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(x => `<span>${x}</span>`).join('')}${cells}</div>`;
+    `<div class="cg">${wd}${cells}</div>`;
 }
 
 function toggleCal(open) {
@@ -237,24 +317,28 @@ function toggleCal(open) {
 
 document.addEventListener('click', e => {
   const t = e.target;
+  if (t === $('#ai') || t.closest('#aiClose')) { $('#ai').close(); return; }
+  const lg = t.closest('[data-lang]');
+  if (lg) { lang = lg.dataset.lang; store.set('lang', lang); applyLang(); if (state.day) render(); return; }
   const b = t.closest('[data-src]'), d = t.closest('.day[data-d]'), n = t.closest('[data-n]');
   const cm = t.closest('[data-cm]'), cd = t.closest('[data-cd]');
   if (cm) { if (!cm.disabled) { calMonth = addMonth(calMonth, +cm.dataset.cm); renderCal(); } return; }
   if (cd) { if (!cd.disabled) { state.day = cd.dataset.cd; toggleCal(false); render(); } return; }
   if (t.closest('#calBtn')) { toggleCal(); return; }
+  if (t.closest('#aiBtn')) { toggleCal(false); if (ai) showAi(); return; }
   if (!t.closest('#cal')) toggleCal(false);
   if (b) { state.src = b.dataset.src; render(); }
   if (d && !d.disabled) { state.day = d.dataset.d; render(); }
   if (n) { state.n = +n.dataset.n; store.set('n', state.n); render(); }
   if (t.closest('#lay')) {
-    const k = Object.keys(LAYOUTS);
-    state.layout = k[(k.indexOf(state.layout) + 1) % k.length];
+    state.layout = LAYOUTS[(LAYOUTS.indexOf(state.layout) + 1) % LAYOUTS.length];
     store.set('layout', state.layout);
     render();
   }
 });
 
 document.addEventListener('keydown', e => {
+  if ($('#ai').open) return;
   if (e.key === 'Escape') toggleCal(false);
   if (e.key === 'ArrowLeft') step(-1);
   if (e.key === 'ArrowRight') step(1);
@@ -277,7 +361,8 @@ document.addEventListener('pointerup', endDrag);
 document.addEventListener('pointercancel', endDrag);
 document.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('.sc')) e.preventDefault(); });
 
-
+applyLang();
+loadAi();
 (async () => {
   try {
     index(await loadTree());
