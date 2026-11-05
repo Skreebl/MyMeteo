@@ -40,8 +40,8 @@ main .sc.grab{cursor:grabbing}
 .none,#msg{padding:40px 16px;text-align:center;color:var(--mut)}
 .none a{color:var(--acc)}
 #cal{position:absolute;top:100%;left:12px;z-index:10;width:min(320px,calc(100vw - 24px));margin-top:-4px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;text-transform:capitalize}
-.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
 .cg span{font-size:11px;color:var(--mut);text-transform:capitalize}
 .cd{aspect-ratio:1;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
 .cd.off{opacity:.3;cursor:default}
@@ -148,6 +148,8 @@ const fmt = (d, o) => new Intl.DateTimeFormat(I18N[lang].locale, { timeZone: 'UT
 const today = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; };
 const rel = d => { const t = today(); return d === t ? T('today') : d === shift(t, -1) ? T('yest') : d === shift(t, -2) ? T('before') : ''; };
 const prefixDir = () => CFG.prefix ? CFG.prefix.replace(/^\/+|\/+$/g, '') + '/' : '';
+const abbr = s => s.replace('.', '').slice(0, 3);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 function repoInfo() {
   if (CFG.owner && CFG.repo) return CFG;
@@ -248,7 +250,7 @@ function render() {
   const t = today();
   $('#days').innerHTML = days.map(d =>
     `<button class="day${has(src, d) ? '' : ' off'}${d === state.day ? ' sel' : ''}${d < state.day && d >= shift(state.day, 1 - state.n) ? ' in' : ''}${d === t ? ' now' : ''}" data-d="${d}" ${has(src, d) ? '' : 'disabled'}>` +
-    `<small>${fmt(d, { weekday: 'short' })}</small><b>${+d.slice(8)}</b><small>${fmt(d, { month: 'short' })}</small></button>`).join('');
+    `<small>${abbr(fmt(d, { weekday: 'short' }))}</small><b>${+d.slice(8)}</b><small>${fmt(d, { month: 'short' })}</small></button>`).join('');
   const sel = $('.day.sel');
   if (sel) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
   const side = src === 'ipma' || state.layout === 'side';
@@ -301,9 +303,9 @@ function renderCal() {
     const ds = `${calMonth}-${String(i).padStart(2, '0')}`, ok = has(state.src, ds);
     cells += `<button class="cd${ok ? '' : ' off'}${ds === state.day ? ' sel' : ''}${ds === t ? ' now' : ''}" data-cd="${ds}" ${ok ? '' : 'disabled'}>${i}</button>`;
   }
-  const wd = [1, 2, 3, 4, 5, 6, 7].map(i => `<span>${fmt('2024-01-0' + i, { weekday: 'short' })}</span>`).join('');
+  const wd = [1, 2, 3, 4, 5, 6, 7].map(i => `<span>${abbr(fmt('2024-01-0' + i, { weekday: 'short' }))}</span>`).join('');
   $('#cal').innerHTML =
-    `<div class="ch"><button class="btn" data-cm="-1" ${calMonth <= minM ? 'disabled' : ''}>‹</button><b>${fmt(calMonth + '-01', { month: 'long', year: 'numeric' })}</b><button class="btn" data-cm="1" ${calMonth >= maxM ? 'disabled' : ''}>›</button></div>` +
+    `<div class="ch"><button class="btn" data-cm="-1" ${calMonth <= minM ? 'disabled' : ''}>‹</button><b>${cap(fmt(calMonth + '-01', { month: 'long', year: 'numeric' }))}</b><button class="btn" data-cm="1" ${calMonth >= maxM ? 'disabled' : ''}>›</button></div>` +
     `<div class="cg">${wd}${cells}</div>`;
 }
 
